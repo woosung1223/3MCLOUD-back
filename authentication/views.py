@@ -12,10 +12,19 @@ class LoginView(APIView):
     def post(self, request):
         return HttpResponse("login2")
 
+
 class RegisterView(APIView):
     def get(self, request):
         return HttpResponse("register1")
 
     def post(self, request):
         return HttpResponse("register2")
+
+
+class RegisterEmailView(APIView):
+    def get(self, request):
+        return HttpResponse("registerE1")
+
+    def post(self, request):
+        return HttpResponse("registerE2")
 
