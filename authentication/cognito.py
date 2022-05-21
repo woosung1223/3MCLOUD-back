@@ -34,3 +34,17 @@ class Cognito():
         
         return token
 
+    def sign_up(self, request):
+        try:
+            username_ = request.data['username']
+            password_ = request.data['password']
+            email = request.data['email']
+
+            resp = self.idp_client.sign_up(ClientId=APP_CLIENT_ID,
+                                  Username=username_,
+                                  Password=password_,
+                                  UserAttributes=[{'Name': 'email', 'Value': email}])
+
+            return resp
+        except:
+            return False

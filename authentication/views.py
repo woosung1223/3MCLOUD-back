@@ -9,10 +9,9 @@ from .cognito import Cognito
 # Create your views here.
 class LoginView(APIView):
     def post(self, request):
-
+        cognito_obj = Cognito()
         # --- boto3 처리 부분 --- #
-        cognito_obj = Cognito() 
-        token = cognito_obj.sign_in(request)
+        token = self.cognito_obj.sign_in(request)
         # --- boto3 처리 부분 종료 --- #
 
         if(token == -1): # 잘못된 비밀번호
@@ -32,9 +31,16 @@ class RegisterView(APIView):
         # 아이디, 비밀번호, 이메일
         deserializer = serializers.UserSerializer(data = request.data)
         if(deserializer.is_valid()):
-            
-            deserializer.save() # User object DB에 저장
-            return JsonResponse({'result' : 'valid'})
-        else:
+            cognito_obj = Cognito()
+            resp = cognito_obj.sign_up(request)
+            if(resp):
+                deserializer.save() # User object DB에 저장
+                return JsonResponse({'result' : 'OK'})
+            else:
+                return JsonResponse({'result' : 'Register failed'})
+        
+
+
+        else: # 이미 존재하는 회원인 경우 포함
             return JsonResponse({'result' : 'invalid'})
             
