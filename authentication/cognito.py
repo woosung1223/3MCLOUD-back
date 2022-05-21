@@ -44,7 +44,17 @@ class Cognito():
                                   Username=username_,
                                   Password=password_,
                                   UserAttributes=[{'Name': 'email', 'Value': email}])
-
-            return resp
         except:
             return False
+        return resp
+
+    def confirm_sign_up(self, request):
+        try:
+            username_ = request.data['username']
+            confirm_code = request.data['confirmcode']
+            resp = self.idp_client.confirm_sign_up(ClientId=APP_CLIENT_ID,
+                                            Username=username_,
+                                            ConfirmationCode=confirm_code)
+        except:
+            return False
+        return resp
