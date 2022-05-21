@@ -18,17 +18,17 @@ class LoginView(APIView):
         if(token == -1): # 잘못된 비밀번호
             return JsonResponse({'result' : 'wrong password'})
         elif(token): # 정상 
-            return JsonResponse({'result' : 'valid request',
+            return JsonResponse({'result' : 'OK',
             'token' : token})
         else: # 회원정보가 존재하지 않는 경우 포함
-            return JsonResponse({'result' : 'Failed'})
+            return JsonResponse({'result' : 'Fail'})
 
 
 
 
 
 class RegisterView(APIView):
-    def post(self, request):
+    def put(self, request):
         # 아이디, 비밀번호, 이메일
         deserializer = serializers.UserSerializer(data = request.data)
         if(deserializer.is_valid()):
@@ -37,13 +37,13 @@ class RegisterView(APIView):
             if(resp):
                 return JsonResponse({'result' : 'OK'})
             else:
-                return JsonResponse({'result' : 'Failed'})
+                return JsonResponse({'result' : 'Fail'})
         
 
 
         else: # 이미 존재하는 회원인 경우 포함
             return JsonResponse({'result' : 'invalid'})
-    def put(self, request):
+    def post(self, request):
             cognito_obj = Cognito()
             resp = cognito_obj.confirm_sign_up(request)
             if(resp):
@@ -54,4 +54,4 @@ class RegisterView(APIView):
 
                 return JsonResponse({'result' : 'OK'})
             else:
-                return JsonResponse({'result' : 'Failed'})
+                return JsonResponse({'result' : 'Fail'})
