@@ -1,13 +1,16 @@
 import boto3
 from .models import User
 from botocore.exceptions import ClientError
-# ENV
+from config.settings import REGION, USER_POOL_ID, APP_CLIENT_ID, IDENTITY_POOL_ID, ACCOUNT_ID, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID
+
+
+
 class Cognito():
     def __init__(self):
-        self.idp_client = boto3.client('cognito-idp', region,
+        self.idp_client = boto3.client('cognito-idp', REGION,
                                   aws_access_key_id = AWS_ACCESS_KEY_ID,
                                   aws_secret_access_key = AWS_SECRET_ACCESS_KEY)
-        self.ci_client = boto3.client('cognito-identity', region_name= region)
+        self.ci_client = boto3.client('cognito-identity', region_name= REGION)
 
     def sign_in(self, request):
         try:
@@ -18,12 +21,11 @@ class Cognito():
                 return -1
             
             try:
-                resp = self.idp_client.admin_initiate_auth(UserPoolId= user_pool_id,
-                                                ClientId= app_client_id,
+                resp = self.idp_client.admin_initiate_auth(UserPoolId= USER_POOL_ID,
+                                                ClientId= APP_CLIENT_ID,
                                                 AuthFlow='ADMIN_NO_SRP_AUTH',
                                                 AuthParameters={'USERNAME': username_,'PASSWORD': password_} )
                 token = resp['AuthenticationResult']['IdToken']
-
             except ClientError as e: # Cognito Exceptions
                  print(e)
 

@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 
+# secret key 처리부분 import
+import os, json
+from django.core.exceptions import ImproperlyConfigured
+
+# secret key 처리부분 import 종료
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -125,3 +130,24 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+secret_file = os.path.join(BASE_DIR, 'secrets.json') 
+
+with open(secret_file, 'r') as f:
+    secrets = json.loads(f.read())
+
+def get_secret(setting, secrets=secrets):
+    try:
+        return secrets[setting]
+    except:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise ImproperlyConfigured(error_msg)
+
+REGION = get_secret('region')
+USER_POOL_ID = get_secret('user_pool_id')
+APP_CLIENT_ID = get_secret('app_client_id')
+IDENTITY_POOL_ID = get_secret('identity_pool_id')
+ACCOUNT_ID = get_secret('account_id')
+AWS_ACCESS_KEY_ID = get_secret('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = get_secret('AWS_SECRET_ACCESS_KEY')
