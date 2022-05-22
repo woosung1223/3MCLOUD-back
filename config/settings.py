@@ -9,8 +9,12 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
-
+import os
 from pathlib import Path
+import environ
+
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'authentication',
     'file',
+    'rest_framework',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -105,9 +111,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
@@ -123,3 +129,34 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+# STATIC_ROOT =  os.path.join(BASE_DIR, 'static')
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # 기본 스토리지 설정
+AWS_S3_SECURE_URLS = False       # https 사용 여부
+AWS_QUERYSTRING_AUTH = False     # 요청에 대한 복잡한 인증 관련 쿼리 매개 변수 허용 여부 -> 확인
+
+AWS_S3_ACCESS_KEY = env('AWS_S3_ACCESS_KEY')  # 접근 키
+AWS_S3_SECRET_KEY = env('AWS_S3_SECRET_KEY')  # 시크릿 키
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')  # 버킷 이름
+AWS_REGION = 'ap-northeast-2'
+
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',} #  HTTP 응답이 재사용 가능하기 전에 다음 86400초 동안 캐시된 복사본으로 브라우저에 남아 있음
+
+# AWS_LOCATION = 'static'
+# STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
+## STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] #static 폴더에 파일 저장
+
+# static 파일 연결은 나중에 -> 장고에서 기본으로 제공하는 css가 사라짐
+
