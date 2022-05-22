@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vm)b@@^%fv=kg#^$0k=28md-&@_u=g5aqkbhtfrom8+alc#@p@'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -46,9 +46,12 @@ INSTALLED_APPS = [
     'authentication',
     'file',
     'rest_framework',
+    "corsheaders", # CORS
 ]
 
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -56,7 +59,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.common.CommonMiddleware",
 ]
+# CORS
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+
+
 
 ROOT_URLCONF = 'config.urls'
 
@@ -151,3 +160,4 @@ IDENTITY_POOL_ID = get_secret('identity_pool_id')
 ACCOUNT_ID = get_secret('account_id')
 AWS_ACCESS_KEY_ID = get_secret('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = get_secret('AWS_SECRET_ACCESS_KEY')
+SECRET_KEY = get_secret('DJANGO_SECRET_KEY')

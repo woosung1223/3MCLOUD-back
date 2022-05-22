@@ -58,3 +58,14 @@ class Cognito():
         except:
             return False
         return resp
+
+    def check_user_auth(self, request):
+        token = request.data['token']
+        print(token)
+        try:
+            resp = self.idp_client.get_user(AccessToken = token)
+        except ClientError as e: # Cognito Exceptions
+                print(e)
+                return False
+
+        return resp['UserAttributes']

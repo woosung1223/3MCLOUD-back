@@ -6,11 +6,10 @@ from django.http import Http404, JsonResponse
 from . import serializers
 from .cognito import Cognito
 from .models import User
-
+cognito_obj = Cognito()
 # Create your views here.
 class LoginView(APIView):
     def post(self, request):
-        cognito_obj = Cognito()
         # --- boto3 처리 부분 --- #
         token = cognito_obj.sign_in(request)
         # --- boto3 처리 부분 종료 --- #
@@ -32,7 +31,6 @@ class RegisterView(APIView):
         # 아이디, 비밀번호, 이메일
         deserializer = serializers.UserSerializer(data = request.data)
         if(deserializer.is_valid()):
-            cognito_obj = Cognito()
             resp = cognito_obj.sign_up(request)
             if(resp):
                 return JsonResponse({'result' : 'OK'})
@@ -44,7 +42,6 @@ class RegisterView(APIView):
         else: # 이미 존재하는 회원인 경우 포함
             return JsonResponse({'result' : 'invalid'})
     def post(self, request):
-            cognito_obj = Cognito()
             resp = cognito_obj.confirm_sign_up(request)
             if(resp):
                 user = User(username = request.data['username'],
@@ -55,3 +52,13 @@ class RegisterView(APIView):
                 return JsonResponse({'result' : 'OK'})
             else:
                 return JsonResponse({'result' : 'Fail'})
+
+
+class UserAuthView(APIView):
+    def get(self, request):
+        resp = cognito_obj.check_user_auth(request)
+        print(resp)
+        if(resp):
+            return JsonResponse({'result' : 'ok'})
+        else:
+            return JsonResponse({'result' : 'Fail'})
