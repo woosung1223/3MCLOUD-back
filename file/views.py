@@ -57,10 +57,15 @@ def uploadFile(request, folder_id):
     })
 
 def downloadFile(request, file_id):
-    file_path = os.path.abspath("media/result/")
-    file_name = os.path.basename("media/result/background.png")
-    fs = FileSystemStorage(file_path)
-    response = FileResponse(fs.open(file_name, 'rb'))
-    response['Content-Disposition'] = 'attachment; filename="background.png"'
+    # file_id로 file 정보 찾기
+    # file 정보에서 소유자, 저장 파일명 찾기
+    # 소유자 / 저장 파일명이 키값이 됨
+    # 키값으로 저장하고 버킷에서 찾아오기
+    # 버킷에서 찾아서 바로 다운
 
-    return response
+
+    s3.download_fileobj(Fileobj, ExtraArgs=None, Callback=None, Config=None)
+    # fileobj = 다운로드할 파일류 객체.
+    # 버킷: 다운로드할 버킷의 이름
+    # 키: 다운로드할 키의 이름 -> user/파일명
+    # 버킷 폴더, 받을 object, 다운이름
