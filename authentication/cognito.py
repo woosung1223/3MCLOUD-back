@@ -25,14 +25,16 @@ class Cognito():
                                                 ClientId= APP_CLIENT_ID,
                                                 AuthFlow='ADMIN_NO_SRP_AUTH',
                                                 AuthParameters={'USERNAME': username_,'PASSWORD': password_} )
-                token = resp['AuthenticationResult']['IdToken']
+                AccessToken = resp['AuthenticationResult']['AccessToken']
+                IdToken = resp['AuthenticationResult']['IdToken']
+
             except ClientError as e: # Cognito Exceptions
                  print(e)
 
         except:
             return 0 # No User Found
         
-        return token
+        return AccessToken, IdToken
 
     def sign_up(self, request):
         try:
@@ -60,12 +62,11 @@ class Cognito():
         return resp
 
     def check_user_auth(self, request):
-        token = request.data['token']
-        print(token)
+        token = request.data['AccessToken']
         try:
             resp = self.idp_client.get_user(AccessToken = token)
         except ClientError as e: # Cognito Exceptions
                 print(e)
                 return False
 
-        return resp['UserAttributes']
+        return resp['Username']

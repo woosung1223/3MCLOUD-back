@@ -11,14 +11,15 @@ cognito_obj = Cognito()
 class LoginView(APIView):
     def post(self, request):
         # --- boto3 처리 부분 --- #
-        token = cognito_obj.sign_in(request)
+        result = cognito_obj.sign_in(request)
         # --- boto3 처리 부분 종료 --- #
 
-        if(token == -1): # 잘못된 비밀번호
+        if(result == -1): # 잘못된 비밀번호
             return JsonResponse({'result' : 'wrong password'})
-        elif(token): # 정상 
+        elif(result): # 정상 
             return JsonResponse({'result' : 'OK',
-            'token' : token})
+            'AccessToken' : result[0],
+            'IdToken' : result[1]})
         else: # 회원정보가 존재하지 않는 경우 포함
             return JsonResponse({'result' : 'Fail'})
 
@@ -57,8 +58,7 @@ class RegisterView(APIView):
 class UserAuthView(APIView):
     def get(self, request):
         resp = cognito_obj.check_user_auth(request)
-        print(resp)
         if(resp):
-            return JsonResponse({'result' : 'ok'})
+            return JsonResponse({'username' : resp})
         else:
             return JsonResponse({'result' : 'Fail'})
