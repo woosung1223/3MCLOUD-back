@@ -1,5 +1,4 @@
 import uuid
-# from .models import Folder, File
 import os
 from django.http import FileResponse, JsonResponse
 from django.core.files.storage import FileSystemStorage
@@ -17,8 +16,7 @@ AWS_STORAGE_BUCKET_NAME = settings.AWS_STORAGE_BUCKET_NAME
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
 @csrf_exempt
-def uploadFile(request, folder_id):
-
+def uploadFile(request):
     if request.method == "POST":
         # 여러개 파일 저장
         uploadedFiles = request.FILES.getlist('files')
@@ -46,14 +44,44 @@ def uploadFile(request, folder_id):
 
 @csrf_exempt
 def listFile(request):
+    if request.method == 'GET':
+        file_path = request.GET["file_path"]
+        user_id = request.GET["user"]
+
+        down_path = user_id + "/" + file_path
+        paginator = s3.get_paginator('list_objects_v2')
+        response_iterator = paginator.paginate(
+            Bucket=AWS_STORAGE_BUCKET_NAME,
+            Prefix=down_path
+        )
+        file_list = []
+        folder_list = []
+        try:
+            for page in response_iterator:
+                for content in page['Contents']:
+                    file = content['Key'].strip(down_path)
+                    file_split = file.split("/")
+                    if (len(file_split)) > 1:
+                        if file_split[0] not in folder_list:
+                            folder_list.append(file_split[0])
+                    else:
+                        file_list.append(file_split[0])
+        except:
+            return JsonResponse({
+                'result': 'File not found',
+            })
+
+        print("file_list", file_list)
+        print("folder_list", folder_list)
+        response = {
+            'folders': folder_list,
+            'files': file_list,
+        }
+        return JsonResponse(response)
 
 
 @csrf_exempt
 def downloadFile(request, file_id):
-    # file_id로 file 정보 찾기
-    # file 정보에서 소유자, 저장 파일명 찾기
-    # 소유자 / 저장 파일명이 키값이 됨
-    # 키값으로 저장하고 버킷에서 찾아오기
     # 버킷에서 찾아서 바로 다운
 
 
