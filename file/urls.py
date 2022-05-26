@@ -7,8 +7,9 @@ from rest_framework import routers
 
 urlpatterns = [
     path("upload/<str:folder_id>", views.uploadFile, name="uploadFile"),
-    path("<int:file_id>/download/", views.downloadFile, name="downloadFile"),
+    path("download/", views.downloadFile, name="downloadFile"),
     path("", views.listFile, name="listFile"),
+    path("image/", views.listImageFile, name="listImageFile"),
 ]
 
 if settings.DEBUG:
