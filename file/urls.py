@@ -6,7 +6,7 @@ from rest_framework import routers
 
 
 urlpatterns = [
-    path("upload/<str:folder_id>", views.uploadFile, name="uploadFile"),
+    path("upload/", views.uploadFile, name="uploadFile"),
     path("download/", views.downloadFile, name="downloadFile"),
     path("", views.listFile, name="listFile"),
     path("image/", views.listImageFile, name="listImageFile"),

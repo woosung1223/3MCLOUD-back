@@ -6,6 +6,7 @@ import boto3
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from urllib.parse import urlparse
+
 # from django.contrib.auth.models import AbstractUser
 
 AWS_ACCESS_KEY_ID = settings.AWS_S3_ACCESS_KEY
@@ -14,23 +15,25 @@ AWS_STORAGE_BUCKET_NAME = settings.AWS_STORAGE_BUCKET_NAME
 AWS_REGION = settings.AWS_REGION
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
+
 @csrf_exempt
 def uploadFile(request):
     if request.method == "POST":
         # 여러개 파일 저장
         uploadedFiles = request.FILES.getlist('files')
+        if len(uploadedFiles) == 0:
+            return JsonResponse({
+                'result': 'file not found',
+            })
+        # compression = request.POST['compression']
+        # isAudio = request.POST['isAudio']
 
-        compression = request.POST['compression']
-        isAudio = request.POST['isAudio']
-
-        file_path = request.POST["file_path"] # 현재 디렉토리 경로
-        print(file_path)
-        user_id = "test" #임시 user 생성
+        file_path = request.POST["file_path"]  # 현재 디렉토리 경로
+        user_id = request.POST["user_id"]  # 임시 user 생성
         for uploadedFile in uploadedFiles:
             # 예외 처리: 이름 같은 파일 없는지 확인 -> 있으면 추가로 이름 붙여서 저장
             fname, ext = os.path.splitext(str(uploadedFile))
             uuidfilename = str(uuid.uuid1()).replace('-', '')
-            # sqlite
             try:
                 s3.upload_fileobj(uploadedFile, AWS_STORAGE_BUCKET_NAME, user_id + "/" + file_path + uuidfilename + ext)
             except:
@@ -41,7 +44,8 @@ def uploadFile(request):
     # 파일 업로드 성공
     return JsonResponse({
         'result': 'Upload succeed',
-    })
+    }, status=201)
+
 
 @csrf_exempt
 def listFile(request):
@@ -84,14 +88,14 @@ def listFile(request):
 @csrf_exempt
 def listImageFile(request):
     if request.method == "GET":
-        user_id = request.GET['user_id'] #user별 폴더
+        user_id = request.GET['user_id']  # user별 폴더
         paginator = s3.get_paginator('list_objects_v2')
+        image_file_url = []
         try:
             response_iterator = paginator.paginate(
                 Bucket=AWS_STORAGE_BUCKET_NAME,
                 Prefix=user_id
             )
-            image_file_url = []
             for page in response_iterator:
                 for content in page['Contents']:
                     file = content['Key']
@@ -103,12 +107,11 @@ def listImageFile(request):
             response = {
                 'image_files': image_file_url,
             }
+            return JsonResponse(response)
         except:
-            # user를 찾지 못했을 때
             return JsonResponse({
-                'result': 'User not found'
+                'result': 'No such user'
             })
-        return JsonResponse(response)
 
 
 @csrf_exempt
@@ -124,7 +127,7 @@ def downloadFile(request):
         )
     except:
         return JsonResponse({
-            'result': 'User not found'
+            'result': 'No such user'
         })
     file_url = ""
     for page in response_iterator:
@@ -156,4 +159,3 @@ def downloadFile(request):
     # print(s3.download_file(AWS_STORAGE_BUCKET_NAME, down_path, file_name))
     # return s3.download_file(AWS_STORAGE_BUCKET_NAME, down_path, file_name)
 #    return S3.download_file(bucket, user+"/"+key, local_path)
-
