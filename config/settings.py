@@ -16,6 +16,11 @@ import environ
 env = environ.Env()
 environ.Env.read_env()
 
+# secret key 처리부분 import
+import os, json
+from django.core.exceptions import ImproperlyConfigured
+
+# secret key 처리부분 import 종료
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,13 +29,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vm)b@@^%fv=kg#^$0k=28md-&@_u=g5aqkbhtfrom8+alc#@p@'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = 'authentication.User'
 
 # Application definition
 
@@ -45,9 +51,12 @@ INSTALLED_APPS = [
     'file',
     'rest_framework',
     'storages',
+    "corsheaders", # CORS
 ]
 
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -55,14 +64,20 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.common.CommonMiddleware",
 ]
+# CORS
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+
+
 
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -160,3 +175,24 @@ AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',} #  HTTP 응답이 
 
 # static 파일 연결은 나중에 -> 장고에서 기본으로 제공하는 css가 사라짐
 
+
+secret_file = os.path.join(BASE_DIR, 'secrets.json') 
+
+with open(secret_file, 'r') as f:
+    secrets = json.loads(f.read())
+
+def get_secret(setting, secrets=secrets):
+    try:
+        return secrets[setting]
+    except:
+        error_msg = "Set the {} environment variable".format(setting)
+        raise ImproperlyConfigured(error_msg)
+
+REGION = get_secret('region')
+USER_POOL_ID = get_secret('user_pool_id')
+APP_CLIENT_ID = get_secret('app_client_id')
+IDENTITY_POOL_ID = get_secret('identity_pool_id')
+ACCOUNT_ID = get_secret('account_id')
+AWS_ACCESS_KEY_ID = get_secret('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = get_secret('AWS_SECRET_ACCESS_KEY')
+SECRET_KEY = get_secret('DJANGO_SECRET_KEY')
