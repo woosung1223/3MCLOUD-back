@@ -11,10 +11,6 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
 from pathlib import Path
-import environ
-
-env = environ.Env()
-environ.Env.read_env()
 
 # secret key 처리부분 import
 import os, json
@@ -50,7 +46,6 @@ INSTALLED_APPS = [
     'authentication',
     'file',
     'rest_framework',
-    'storages',
     "corsheaders", # CORS
 ]
 
@@ -145,14 +140,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    # Use Django's standard `django.contrib.auth` permissions,
-    # or allow read-only access for unauthenticated users.
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ]
-}
-
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 # STATIC_ROOT =  os.path.join(BASE_DIR, 'static')
@@ -161,21 +148,8 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # 기본 스�
 AWS_S3_SECURE_URLS = False       # https 사용 여부
 AWS_QUERYSTRING_AUTH = False     # 요청에 대한 복잡한 인증 관련 쿼리 매개 변수 허용 여부 -> 확인
 
-AWS_S3_ACCESS_KEY = env('AWS_S3_ACCESS_KEY')  # 접근 키
-AWS_S3_SECRET_KEY = env('AWS_S3_SECRET_KEY')  # 시크릿 키
-AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')  # 버킷 이름
-AWS_REGION = 'ap-northeast-2'
 
-AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
-AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',} #  HTTP 응답이 재사용 가능하기 전에 다음 86400초 동안 캐시된 복사본으로 브라우저에 남아 있음
-
-# AWS_LOCATION = 'static'
-# STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
-## STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] #static 폴더에 파일 저장
-
-# static 파일 연결은 나중에 -> 장고에서 기본으로 제공하는 css가 사라짐
-
-
+###<-- 환경변수 처리부분 -->###
 secret_file = os.path.join(BASE_DIR, 'secrets.json') 
 
 with open(secret_file, 'r') as f:
@@ -188,11 +162,25 @@ def get_secret(setting, secrets=secrets):
         error_msg = "Set the {} environment variable".format(setting)
         raise ImproperlyConfigured(error_msg)
 
+
 REGION = get_secret('region')
 USER_POOL_ID = get_secret('user_pool_id')
 APP_CLIENT_ID = get_secret('app_client_id')
 IDENTITY_POOL_ID = get_secret('identity_pool_id')
 ACCOUNT_ID = get_secret('account_id')
-AWS_ACCESS_KEY_ID = get_secret('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = get_secret('AWS_SECRET_ACCESS_KEY')
+AWS_ACCESS_KEY = get_secret('AWS_ACCESS_KEY_ID')
+AWS_SECRET_KEY = get_secret('AWS_SECRET_ACCESS_KEY')
 SECRET_KEY = get_secret('DJANGO_SECRET_KEY')
+AWS_STORAGE_BUCKET_NAME = get_secret('AWS_STORAGE_BUCKET_NAME')  # 버킷 이름
+
+
+###<-- 환경변수 처리부분 종료 -->###
+
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, REGION)
+AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400',} #  HTTP 응답이 재사용 가능하기 전에 다음 86400초 동안 캐시된 복사본으로 브라우저에 남아 있음
+
+# AWS_LOCATION = 'static'
+# STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
+## STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] #static 폴더에 파일 저장
+
+# static 파일 연결은 나중에 -> 장고에서 기본으로 제공하는 css가 사라짐

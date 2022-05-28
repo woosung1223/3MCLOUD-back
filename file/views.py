@@ -1,24 +1,35 @@
 import uuid
 import os
 from django.http import FileResponse, JsonResponse
-from django.core.files.storage import FileSystemStorage
 import boto3
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from urllib.parse import urlparse
-
+from botocore.exceptions import ClientError
 # from django.contrib.auth.models import AbstractUser
 
-AWS_ACCESS_KEY_ID = settings.AWS_S3_ACCESS_KEY
-AWS_SECRET_ACCESS_KEY = settings.AWS_S3_SECRET_KEY
 AWS_STORAGE_BUCKET_NAME = settings.AWS_STORAGE_BUCKET_NAME
-AWS_REGION = settings.AWS_REGION
-s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-
+AWS_REGION = settings.REGION
+AWS_ACCOUNT_ID = settings.ACCOUNT_ID
+AWS_IDENTITY_POOL_ID = settings.IDENTITY_POOL_ID
+provider = 'cognito-idp.%s.amazonaws.com/%s' % (settings.REGION, settings.USER_POOL_ID)
 
 @csrf_exempt
 def uploadFile(request):
     if request.method == "POST":
+        ### 토큰 값을 자격증명으로 교환 ###
+        token = request.POST["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                               IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                               Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                      Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
+
         # 여러개 파일 저장
         uploadedFiles = request.FILES.getlist('files')
         if len(uploadedFiles) == 0:
@@ -35,23 +46,37 @@ def uploadFile(request):
             fname, ext = os.path.splitext(str(uploadedFile))
             uuidfilename = str(uuid.uuid1()).replace('-', '')
             try:
-                s3.upload_fileobj(uploadedFile, AWS_STORAGE_BUCKET_NAME, user_id + "/" + file_path + uuidfilename + ext)
-            except:
+                s3.upload_fileobj(uploadedFile, AWS_STORAGE_BUCKET_NAME, user_id + "/" + file_path + fname + '3mcloud' + uuidfilename + ext)
+            except ClientError as e:
                 # 실패 시
+                print(e)
                 return JsonResponse({
                     'result': 'Upload failed',
                 })
+
     # 파일 업로드 성공
     return JsonResponse({
         'result': 'Upload succeed',
     }, status=201)
 
-
 @csrf_exempt
 def listFile(request):
     if request.method == 'GET':
+        ### 토큰 값을 자격증명으로 교환 ###
+        token = request.GET["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                               IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                               Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                      Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
         file_path = request.GET["file_path"]
-        user_id = request.GET["user"]
+        user_id = request.GET["user_id"]
 
         down_path = user_id + "/" + file_path
         paginator = s3.get_paginator('list_objects_v2')
@@ -88,6 +113,19 @@ def listFile(request):
 @csrf_exempt
 def listImageFile(request):
     if request.method == "GET":
+        ### 토큰 값을 자격증명으로 교환 ###
+        token = request.GET["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                               IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                               Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                      Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
         user_id = request.GET['user_id']  # user별 폴더
         paginator = s3.get_paginator('list_objects_v2')
         image_file_url = []
@@ -99,7 +137,7 @@ def listImageFile(request):
             for page in response_iterator:
                 for content in page['Contents']:
                     file = content['Key']
-                    if '.jpg' in file or '.png' in file:
+                    if '.jpg' in file or '.png' in file or '.PNG' in file:
                         file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
                                                                                  file)
                         image_file_url.append(file_url)
@@ -116,43 +154,58 @@ def listImageFile(request):
 
 @csrf_exempt
 def downloadFile(request):
-    # file_path = request.GET['file_path']
-    file_name = request.GET['file_name']  # 파일 이름
-    user_id = request.GET['user_id']
-    try:
-        paginator = s3.get_paginator('list_objects_v2')
-        response_iterator = paginator.paginate(
-            Bucket=AWS_STORAGE_BUCKET_NAME,
-            Prefix=user_id
-        )
-    except:
-        return JsonResponse({
-            'result': 'No such user'
-        })
-    file_url = ""
-    for page in response_iterator:
-        for content in page['Contents']:
-            key = content['Key']
-            key_name = key.split("/")[-1]
-            print(key_name)
-            print(file_name)
-            if key_name == file_name:
-                file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
-                                                                         key)
-                '''s3.generate_presigned_url('get_object',
-                                       Params={'Bucket': AWS_STORAGE_BUCKET_NAME,
-                                               'Key': object_name},
-                                       ExpiresIn=expiration)'''
+    if request.method == "GET":
+    ### 토큰 값을 자격증명으로 교환 ###
+        token = request.GET["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                            IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                            Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                    Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
 
-    if file_url == "":
-        return JsonResponse({
-            'result': 'Failed'
-        })
-    else:
-        response = {
-            'file': file_url,
-        }
-        return JsonResponse(response)
+        # file_path = request.GET['file_path']
+        file_name = request.GET['file_name']  # 파일 이름
+        user_id = request.GET['user_id']
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            response_iterator = paginator.paginate(
+                Bucket=AWS_STORAGE_BUCKET_NAME,
+                Prefix=user_id
+            )
+        except:
+            return JsonResponse({
+                'result': 'No such user'
+            })
+        file_url = ""
+        for page in response_iterator:
+            for content in page['Contents']:
+                key = content['Key']
+                key_name = key.split("/")[-1]
+                print("KEY NAME : " + key_name)
+                print("FILE NAME : " + file_name)
+                if key_name == file_name:
+                    file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
+                                                                            key)
+                    '''s3.generate_presigned_url('get_object',
+                                        Params={'Bucket': AWS_STORAGE_BUCKET_NAME,
+                                                'Key': object_name},
+                                        ExpiresIn=expiration)'''
+
+        if file_url == "":
+            return JsonResponse({
+                'result': 'Failed'
+            })
+        else:
+            response = {
+                'file': file_url,
+            }
+            return JsonResponse(response)
 
     # 오브젝트 이름 -> 다운 받을 이름
     # file_path = 다운 경로

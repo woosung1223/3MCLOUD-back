@@ -1,15 +1,15 @@
 import boto3
 from .models import User
 from botocore.exceptions import ClientError
-from config.settings import REGION, USER_POOL_ID, APP_CLIENT_ID, IDENTITY_POOL_ID, ACCOUNT_ID, AWS_SECRET_ACCESS_KEY, AWS_ACCESS_KEY_ID
+from config.settings import REGION, USER_POOL_ID, APP_CLIENT_ID, IDENTITY_POOL_ID, ACCOUNT_ID, AWS_SECRET_KEY, AWS_ACCESS_KEY
 
 
 
 class Cognito():
     def __init__(self):
         self.idp_client = boto3.client('cognito-idp', REGION,
-                                  aws_access_key_id = AWS_ACCESS_KEY_ID,
-                                  aws_secret_access_key = AWS_SECRET_ACCESS_KEY)
+                                  aws_access_key_id = AWS_ACCESS_KEY,
+                                  aws_secret_access_key = AWS_SECRET_KEY)
         self.ci_client = boto3.client('cognito-identity', region_name= REGION)
 
     def sign_in(self, request):
@@ -17,6 +17,7 @@ class Cognito():
             username_ = request.data['username']
             password_ = request.data['password']
             real_password = User.objects.get(username = username_).password
+            print(real_password)
             if(password_ != real_password):
                 return -1
             
