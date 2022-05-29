@@ -12,7 +12,7 @@ AWS_REGION = settings.REGION
 AWS_ACCOUNT_ID = settings.ACCOUNT_ID
 AWS_IDENTITY_POOL_ID = settings.IDENTITY_POOL_ID
 provider = 'cognito-idp.%s.amazonaws.com/%s' % (settings.REGION, settings.USER_POOL_ID)
-
+format = [".jpg",".png",".jpeg","bmp",".JPG",".PNG","JPEG","BMP"] # 지원하는 포맷확장자 나열
 @csrf_exempt
 def uploadFile(request):
     if request.method == "POST":
@@ -137,10 +137,11 @@ def listImageFile(request):
             for page in response_iterator:
                 for content in page['Contents']:
                     file = content['Key']
-                    if '.jpg' in file or '.png' in file or '.PNG' in file:
-                        file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
+                    for extension in format:
+                        if extension in file:
+                            file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
                                                                                  file)
-                        image_file_url.append(file_url)
+                            image_file_url.append(file_url)
 
             response = {
                 'image_files': image_file_url,
