@@ -78,6 +78,9 @@ def listFile(request):
         file_path = request.GET["file_path"]
         user_id = request.GET["user_id"]
 
+        file_path_list = file_path.split("/")
+        file_path_list.insert(0, user_id)
+
         down_path = user_id + "/" + file_path
         paginator = s3.get_paginator('list_objects_v2')
         response_iterator = paginator.paginate(
@@ -89,13 +92,19 @@ def listFile(request):
         try:
             for page in response_iterator:
                 for content in page['Contents']:
-                    file = content['Key'].strip(down_path)
-                    file_split = file.split("/")
-                    if (len(file_split)) > 1:
-                        if file_split[0] not in folder_list:
-                            folder_list.append(file_split[0])
+                    file = content['Key']
+                    full_file_split = file.split("/")
+                    for item in file_path_list:
+                        if item in full_file_split:
+                            full_file_split.remove(item)
+                    file_split = full_file_split
+                    print(file_split)
+                    if file[-1] == "/":
+                        folder_list.append(file_split[0])
                     else:
-                        file_list.append(file_split[0])
+                        if (len(file_split)) == 1:
+                            file_list.append(file_split[0])
+
         except:
             return JsonResponse({
                 'result': 'Path Error',
