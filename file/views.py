@@ -247,7 +247,7 @@ def deleteFile(request):
             })
 
         file_path = data["file_path"]  # 현재 디렉토리 경로
-        user_id = data["user_id"]  # 임시 user 생성
+        user_id = data["user_id"] 
 
         for DeleteFile in DeleteFiles:
             # 예외 처리: 이름 같은 파일 없는지 확인 -> 있으면 추가로 이름 붙여서 저장
@@ -264,7 +264,7 @@ def deleteFile(request):
         # 파일 업로드 성공
         return JsonResponse({
             'result': 'Delete succeed',
-        }, status=201)
+        })
 
 
 @csrf_exempt
@@ -309,3 +309,36 @@ def searchFile(request):
             return JsonResponse({
                 'result': 'No such user'
             })
+
+@csrf_exempt
+def makeFolder(request):
+    if request.method == "POST":
+        data=json.loads(request.body)
+        ### 토큰 값을 자격증명으로 교환 ###
+        token = data["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                               IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                               Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                      Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
+
+        file_path = data["file_path"]  # 현재 디렉토리 경로
+        user_id = data["user_id"] 
+
+        try:
+            s3.put_object(Bucket = AWS_STORAGE_BUCKET_NAME, Key = user_id + "/" + file_path)
+        except ClientError as e:
+            # 실패 시
+            print(e)
+            return JsonResponse({
+                'result': 'Makefile failed',
+            })
+        return JsonResponse({
+            'result': 'Makefile succeed',
+        })
