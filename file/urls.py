@@ -10,6 +10,8 @@ urlpatterns = [
     path("download/", views.downloadFile, name="downloadFile"),
     path("", views.listFile, name="listFile"),
     path("image/", views.listImageFile, name="listImageFile"),
+    path("delete/", views.deleteFile, name = "DeleteFile"),
+    path("search/", views.searchFile, name="searchFile"),
 ]
 
 if settings.DEBUG:
