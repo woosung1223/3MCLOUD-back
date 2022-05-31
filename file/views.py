@@ -41,10 +41,65 @@ def uploadFile(request):
 
         file_path = request.POST["file_path"]  # 현재 디렉토리 경로
         user_id = request.POST["user_id"]  # 임시 user 생성
+
+
+        file_path_list = file_path.split("/")
+        file_path_list.insert(0, user_id)
+
+        try:
+            # 리스트 가져와서 있는지 확인
+            down_path = user_id + "/" + file_path
+            paginator = s3.get_paginator('list_objects_v2')
+            response_iterator = paginator.paginate(
+                Bucket=AWS_STORAGE_BUCKET_NAME,
+                Prefix=down_path
+            )
+            file_list = []
+        except:
+            return JsonResponse({
+                'result': 'Path Error',
+            })
+
+        for page in response_iterator:
+            if 'Contents' not in page:
+                continue
+            for content in page['Contents']:
+                file = content['Key']
+                full_file_split = file.split("/")
+
+                if full_file_split[-1] == '':
+                    del full_file_split[-1]
+                for item in file_path_list:
+                    if item in full_file_split:
+                        full_file_split.remove(item)
+                file_split = full_file_split
+                if file[-1] != "/":
+                    # 파일일 때
+                    if (len(file_split)) == 1:
+                        file_list.append(file_split[0])
+
+        # 현재 위치에 있는 file_list 가져옴
+        # print(file_list)
+
         for uploadedFile in uploadedFiles:
             # 예외 처리: 이름 같은 파일 없는지 확인 -> 있으면 추가로 이름 붙여서 저장
+            count = 0
+            str_uploadedFile = str(uploadedFile)
+            fname, ext = os.path.splitext(str_uploadedFile)
+
+            for file_item in file_list:
+                if fname in file_item:
+                    temp_strip_file_item = file_item.strip(str_uploadedFile)
+                    if temp_strip_file_item == "":
+                        count += 1
+                    strip_file_item = temp_strip_file_item.strip("()")
+                    if strip_file_item.isdigit():
+                        count += 1
+            if count != 0:
+                fname = fname + "(" + str(count) + ")"
+
             try:
-                s3.upload_fileobj(uploadedFile, AWS_STORAGE_BUCKET_NAME, user_id + "/" + file_path + str(uploadedFile))
+                s3.upload_fileobj(uploadedFile, AWS_STORAGE_BUCKET_NAME, user_id + "/" + file_path + file_path + fname +ext)
             except ClientError as e:
                 # 실패 시
                 print(e)
@@ -92,14 +147,20 @@ def listFile(request):
                 for content in page['Contents']:
                     file = content['Key']
                     full_file_split = file.split("/")
+
+                    if full_file_split[-1] == '':
+                        del full_file_split[-1]
+                    # print(full_file_split)
                     for item in file_path_list:
                         if item in full_file_split:
                             full_file_split.remove(item)
                     file_split = full_file_split
-                    print(file_split)
+                    # print(file_split)
                     if file[-1] == "/":
-                        folder_list.append(file_split[0])
+                        if len(file_split) != 0:
+                            folder_list.append(file_split[0])
                     else:
+                        # 파일이면
                         if (len(file_split)) == 1:
                             file_list.append(file_split[0])
 
