@@ -13,6 +13,7 @@ AWS_ACCOUNT_ID = settings.ACCOUNT_ID
 AWS_IDENTITY_POOL_ID = settings.IDENTITY_POOL_ID
 provider = 'cognito-idp.%s.amazonaws.com/%s' % (settings.REGION, settings.USER_POOL_ID)
 format = [".jpg",".png",".jpeg","bmp",".JPG",".PNG","JPEG","BMP"] # 지원하는 포맷확장자 나열
+audioFormat = [".wav", ".mp3", ".dct", "wma"]
 @csrf_exempt
 def uploadFile(request):
     if request.method == "POST":
@@ -403,3 +404,47 @@ def makeFolder(request):
         return JsonResponse({
             'result': 'Makefile succeed',
         })
+
+
+@csrf_exempt
+def listAudioFile(request):
+    if request.method == "GET":
+        ### 토큰 값을 자격증명으로 교환 ###
+        token = request.GET["IdToken"]
+        ci_client = boto3.client('cognito-identity', region_name=AWS_REGION)
+        resp = ci_client.get_id(AccountId=AWS_ACCOUNT_ID,
+                               IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                               Logins={provider:token})
+        credentials = ci_client.get_credentials_for_identity(IdentityId=resp['IdentityId'],
+                                                      Logins={provider: token})['Credentials']
+        AWS_ACCESS_KEY_ID = credentials['AccessKeyId']
+        AWS_SECRET_ACCESS_KEY = credentials['SecretKey']
+        AWS_SESSION_TOKEN = credentials['SessionToken']
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY, aws_session_token = AWS_SESSION_TOKEN)
+        ### 자격증명 교환 부분 종료 ###
+        user_id = request.GET['user_id']  # user별 폴더
+        paginator = s3.get_paginator('list_objects_v2')
+        audio_file_url = []
+        try:
+            response_iterator = paginator.paginate(
+                Bucket=AWS_STORAGE_BUCKET_NAME,
+                Prefix=user_id
+            )
+            for page in response_iterator:
+                for content in page['Contents']:
+                    file = content['Key']
+                    for extension in audioFormat:
+                        if extension in file:
+                            file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
+                                                                                 file)
+                            audio_file_url.append(file_url)
+
+            response = {
+                'audio_files': audio_file_url,
+            }
+            return JsonResponse(response)
+        except:
+            return JsonResponse({
+                'result': 'No such user'
+            })
+

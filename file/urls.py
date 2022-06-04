@@ -13,6 +13,7 @@ urlpatterns = [
     path("delete/", views.deleteFile, name = "deleteFile"),
     path("search/", views.searchFile, name="searchFile"),
     path("makefolder/", views.makeFolder, name = "makeFolder"),
+    path("audio/", views.listAudioFile, name="listAudioFile"),
 ]
 
 if settings.DEBUG:
