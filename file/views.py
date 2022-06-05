@@ -4,6 +4,7 @@ import boto3
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from botocore.exceptions import ClientError
+import requests
 import json # request parsing
 # from django.contrib.auth.models import AbstractUser
 
@@ -12,8 +13,20 @@ AWS_REGION = settings.REGION
 AWS_ACCOUNT_ID = settings.ACCOUNT_ID
 AWS_IDENTITY_POOL_ID = settings.IDENTITY_POOL_ID
 provider = 'cognito-idp.%s.amazonaws.com/%s' % (settings.REGION, settings.USER_POOL_ID)
-format = [".jpg",".png",".jpeg","bmp",".JPG",".PNG","JPEG","BMP"] # 지원하는 포맷확장자 나열
-audioFormat = [".wav", ".mp3", ".dct", "wma"]
+image_formats = [".jpg",".png",".jpeg","bmp",".JPG",".PNG","JPEG","BMP"] # 지원하는 포맷확장자 나열
+audio_formats = [".wav", ".mp3", ".dct", "wma",".m4a"]
+
+
+def async_check_image(user_id,file_path,fname,ext):
+    res = requests.get('http://34.233.134.154/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
+
+
+def async_check_music(user_id,file_path,fname,ext):
+    res = requests.get('http://52.70.28.24:5000/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
+    print(res.text)
+
+
+
 @csrf_exempt
 def uploadFile(request):
     if request.method == "POST":
@@ -87,7 +100,8 @@ def uploadFile(request):
             count = 0
             str_uploadedFile = str(uploadedFile)
             fname, ext = os.path.splitext(str_uploadedFile)
-
+            print("ext: ",ext)
+            print("fname: ",fname)
             for file_item in file_list:
                 if fname in file_item:
                     temp_strip_file_item = file_item.strip(str_uploadedFile)
@@ -107,7 +121,18 @@ def uploadFile(request):
                 return JsonResponse({
                     'result': 'Upload failed',
                 })
-
+            for format in image_formats:
+                if ext == format:        
+                    if os.fork() == 0:
+                        async_check_image(user_id,file_path,fname,ext)
+                    else :
+                        pass
+            for format in audio_formats:
+                if ext == format:        
+                    if os.fork() == 0:
+                        async_check_music(user_id,file_path,fname,ext)
+                    else :
+                        pass
         # 파일 업로드 성공
         return JsonResponse({
             'result': 'Upload succeed',
@@ -143,6 +168,7 @@ def listFile(request):
         )
         file_list = []
         folder_list = []
+
         try:
             for page in response_iterator:
                 for content in page['Contents']:
@@ -433,7 +459,7 @@ def listAudioFile(request):
             for page in response_iterator:
                 for content in page['Contents']:
                     file = content['Key']
-                    for extension in audioFormat:
+                    for extension in audio_formats:
                         if extension in file:
                             file_url = 'https://{0}.s3.{1}.amazonaws.com/{2}'.format(AWS_STORAGE_BUCKET_NAME, AWS_REGION,
                                                                                  file)
