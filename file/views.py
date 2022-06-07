@@ -18,11 +18,11 @@ audio_formats = [".wav", ".mp3", ".dct", "wma",".m4a"]
 
 
 def async_check_image(user_id,file_path,fname,ext):
-    res = requests.get('http://34.233.134.154/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
+    res = requests.get('http://54.242.104.179/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
 
 
 def async_check_music(user_id,file_path,fname,ext):
-    res = requests.get('http://52.70.28.24:5000/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
+    res = requests.get('http://54.211.92.5:5000/' + AWS_STORAGE_BUCKET_NAME + "/" + user_id + "/" + file_path + file_path + fname +ext)
     print(res.text)
 
 
